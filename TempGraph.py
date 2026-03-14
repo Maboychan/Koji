@@ -1,0 +1,226 @@
+# Maboy_Lab/Kouji/TempGraph_20260315_063310.py
+'''
+TempGraph.py v1.0.0
+
+麹造りの温度変化の記録をグラフにする。
+2026-03-15 06:32 余分な注釈を削除。
+2026-03-14 20:27 一時ファイルをNamedTemporaryFile()で自動削除する。 
+2026-03-14 19:42 一時ファイルtmp.pngもThis_iPadのtemp_dataに保存する。
+2026-03-14 19:26 データフォルダをThis_iPadのtemp_dataに配置する。
+2026-03-14 15:43 FILE_PATHをstr()からPath()に変更。
+2026-03-14 11:33 新規のデータを読み込んだ時にひとつ前のグラフが返されるバグを修正。
+2026-03-13 06:51 ファイル名のルールを変更に伴いLATEST_FILEの取得を".temp"に限定
+    20260313.temp            # 温度データ
+    20260313_graph.png       # グラフ画像
+    20260313_haze_0.png      # 破精廻り写真 
+    20260313_haze_1.png      # 破精廻り透かし写真
+'''
+from datetime import datetime
+from pathlib import Path
+from PIL import Image, ImageDraw
+from tempfile import NamedTemporaryFile
+import appex, clipboard, dialogs, io, os, ui
+
+LOCAL_DOCS: Path = Path.home() / "Documents"
+TEMP_DATA_DIR: Path = LOCAL_DOCS / "temp_data"
+TMP_PATH: Path = TEMP_DATA_DIR / "tmp.png"
+if not TEMP_DATA_DIR.is_dir(): TEMP_DATA_DIR.mkdir(parents=True, exist_ok=True)
+LATEST_FILE = sorted([x for x in os.listdir(TEMP_DATA_DIR) if '.temp' in x])
+if LATEST_FILE:
+    LATEST_FILE: Path = LATEST_FILE[-1]
+    FILE_PATH: Path = TEMP_DATA_DIR / LATEST_FILE
+print(FILE_PATH)
+
+def is_temp_data(text):
+    # 温度データならTrue、それ以外ならFalseを返す。
+    if not isinstance(text, str): return False
+    try:
+        text_list = text.split()
+        if len(text_list)<3: return False
+        try: datetime.strptime(text_list[0], "%Y-%m-%d")
+        except ValueError: return False
+        try: datetime.strptime(text_list[1], "%H:%M")
+        except ValueError: return False
+        if text_list[2].strip() == "": return False
+        try:
+            if 20 < float(text_list[2]) < 50: return True
+        except ValueError: return False
+        return False
+    except Exception as e:
+        print("error")
+        return e
+#-------------------------------------------------------------------------------------------
+
+def get_temp_data(text):
+    # テキストから温度データを取り出しリストで返す。
+    global FILE_PATH, LINES
+    TEMP_DATA = text.splitlines()
+    LINES = []
+    for i, LINE in enumerate(TEMP_DATA):
+        
+        print(f"{i+1} {LINE}",end=" ")
+        if not is_temp_data(LINE):
+            message = f"⚠️データが認識できません。"
+            print(message)
+            continue
+        DATE = LINE.split()[0]
+        TIME = LINE.split()[1]
+        TEMP = LINE.split()[2]
+        COMMENT = " ".join(LINE.split()[3:])
+        if "0️⃣" in COMMENT:
+            FILE_NAME = f'{DATE.replace("-","")}.temp'
+            FILE_PATH = os.path.join(TEMP_DATA_DIR, FILE_NAME) 
+        print()
+        LINES.append(LINE)
+    return LINES
+#-------------------------------------------------------------------------------------------
+
+def append_data(LINES):
+    # FILE_PATHとLINES合体してソートして保存する。
+    from pathlib import Path
+    global FILE_PATH
+    data = []
+    if Path(FILE_PATH).is_file():
+        with open(FILE_PATH, encoding='utf-8') as f:
+            data = f.read().splitlines()
+    data_set = set(data + LINES)
+    data = sorted(data_set)
+    with open(FILE_PATH, 'w', encoding='utf8') as f:
+        f.write('\n'.join(data))
+#-------------------------------------------------------------------------------------------
+
+def roundup(n=None):
+    if not n: return int(n)
+    return int(n) + (int(n) < n)
+#-------------------------------------------------------------------------------------------
+
+def make_graph(file_path=""):
+    if not file_path:
+        if 'FILE_PATH' in globals():
+            file_path=FILE_PATH
+        else:
+            print("⚠️ 温度データがありません。")
+            return
+        
+    # 温度データから折れ線グラフを返す。
+    line_color = (255, 0, 0, 255)
+    factor = (0.4, 0.7, 1)
+    line_colors = [tuple([int(c * f) for c in line_color]) for f in factor]
+    with open(file_path, encoding='utf-8') as f:
+        lines = f.read().splitlines()
+        lines.sort()
+    DT_TEXTS = [" ".join(x.split()[:2]) for x in lines]
+    DT_LIST = [datetime.strptime(x, '%Y-%m-%d %H:%M') for x in DT_TEXTS]
+    TS_LIST = [datetime.timestamp(x) for x in DT_LIST]
+    # 経過時間（秒）のリスト
+    MIN = min(TS_LIST)
+    SEC_LIST = [x - MIN for x in TS_LIST]
+    # 日数
+    days = SEC_LIST[-1]/(24*3600)
+    DAYS = max(int(days) + (days - int(days) > 0), 2)
+    # グラフサイズ
+    W, H = 324 * DAYS, 480
+    seconds_w = W / DAYS / (24 * 60 * 60) # 1秒
+    hours_12 = W / DAYS / (24 / 12) # 12時間
+    # 温度データのリスト
+    temp_list = [float(x.split()[2]) for x in lines]
+    TEMP_LIST = [max(min(x-25, 25), 0) for x in temp_list]
+    celsius_1 = H / 25 # 1℃の高さ
+    trigger_temp = celsius_1 * (38 - 25) # トリガー温度（38℃）の高さ
+    
+    X_LIST = [roundup(x * seconds_w) for x in SEC_LIST]
+    Y_LIST = [roundup(H - y * celsius_1) for y in TEMP_LIST]
+    XY_LIST = [(X_LIST[i],Y_LIST[i]) for i in range(len(X_LIST))]
+    
+    im = base_graph(W, H) # 背景
+    gr = Image.new('RGBA', (W, H), (0, 0, 0, 0)) # グラフ
+    dr = ImageDraw.Draw(gr)
+    
+    # 折れ線グラフの描画
+    dr.line(XY_LIST, line_colors[0], 5)
+    dr.line(XY_LIST, line_colors[1], 3)
+    dr.line(XY_LIST, line_colors[2], 1)
+    
+    # トリガーラインと出麹ラインの描画
+    trigger = [[gr.getpixel((x,trigger_temp)),x] for x in range(W)]
+    trigger = [x for x in trigger if line_colors[2] in x]
+    
+    if trigger:
+        trigger = trigger[0]
+        dr.line((trigger[1], 0, trigger[1], H), 'red')
+        dr.line((trigger[1] + hours_12, 0, trigger[1] + hours_12, H), 'red')
+    
+    # 背景にグラフをペースト
+    im.paste(gr, (0, 0), gr)
+    return im
+#-------------------------------------------------------------------------------------------
+
+def base_graph(W=648, H=480, bg_file_name='background.png'):
+    # 折れ線グラフのバックグラウンド画像を返す。
+    DAYS = W // 324
+    grid_color = (0, 0, 255, 255)
+    grid_sub_color = (0, 0, 255, 64)
+    text_color = 'blue'
+    
+    im = Image.new('RGBA', (W, H), (0, 0, 0, 0))
+    dr = ImageDraw.Draw(im)
+    dr.rectangle((0, 0, W-1, H-1), (0, 0, 0, 0), grid_color)
+    # 水平グリッドラインを描画する。
+    for i in range(5):
+        y = int(i * (H / 5))
+        dr.line((0, y, W, y),grid_color)
+        dr.text((5, y),str(50 - i * 5),text_color)
+    dr.text((5, H - 10),str(25),text_color)
+    # 垂直グリッドラインを描く
+    hour = 2
+    for i in range(int(DAYS / (hour / 24))):
+        x = int(i * (W / DAYS / 24) * hour)
+        dr.line((x, 0, x, H),(0, 0, 255, 64) if x != 0 else grid_color)
+    hour = 12
+    for i in range(int(DAYS / (hour / 24))):
+        x = int((i + 1) * (W / DAYS / 24) * hour)
+        dr.line((x, 0, x, H), grid_color)
+        dr.text((x if x < W else x - 12, H - 10), str((i + 1) * 12), text_color)
+    # グラフサイズに合わせて背景画像を引き伸ばしグリッドラインを重ねる。
+    bg = Image.open(bg_file_name)
+    cr = bg.crop((bg.size[0] - 1, 0, bg.size[0], bg.size[1]))
+    cr = cr.resize(im.size)
+    cr.paste(bg, (0, 0))
+    cr.paste(im, (0, 0), im)
+    return cr
+#-------------------------------------------------------------------------------------------
+
+def main():
+    global FILE_PATH, LINES
+    clip = clipboard.get()
+    if appex.is_running_extension():
+        text = appex.get_text()
+        LINES = get_temp_data(text)
+        print(f'{FILE_PATH}に追加しました。')
+        append_data(LINES)
+    elif clip:
+        LINES = get_temp_data(clip)
+        if LINES:
+            title = '📋 Clipboard'
+            message = "クリップボードに温度データがあります。\nファイルに追加しますか?"
+            y, n = 'はい', 'いいえ'
+            if dialogs.alert(title, message, y, n, hide_cancel_button=True) == 1:
+                print(f'{FILE_PATH}に追加しました。')
+                append_data(LINES)
+    # グラフ描画、保存、クリップボードにコピー
+    im = make_graph()
+    if not im: return
+    W, H = im.size
+    im.show()
+    im.save(FILE_PATH.with_stem(FILE_PATH.stem + "_graph").with_suffix(".png"))
+    
+    with NamedTemporaryFile(suffix='.png', delete=True) as tmp:
+        im.resize((W // 2, H // 2)).save(tmp.name)
+        ui_img = ui.Image(str(tmp.name))
+        clipboard.set_image(ui_img)
+    
+    appex.finish()
+#-------------------------------------------------------------------------------------------
+
+if __name__ == '__main__':
+    main()
