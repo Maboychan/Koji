@@ -237,7 +237,7 @@ def main():
         ui_img = ui.Image(str(tmp.name))
         clipboard.set_image(ui_img)
  
-   if APPEX:
+    if APPEX:
         show_preview(ui_img)
         appex.finish()
     else:
