@@ -205,6 +205,7 @@ def base_graph(W=648, H=480, bg_file_name='background.png'):
         dr.text((x if x < W else x - 12, H - 10), str((i + 1) * 12), text_color)
     # グラフサイズに合わせて背景画像を引き伸ばしグリッドラインを重ねる。
 # bg_file_nameが存在しない場合の処理が必要
+# 背景画像のリサイズを修正
     bg = Image.open(bg_file_name).resize((W // DAYS * 2,H))
     w, h = bg.size
     cr = bg.crop((w - 1, 0, w, h))
