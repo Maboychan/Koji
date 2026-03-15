@@ -1,8 +1,10 @@
-# Maboy_Lab/Kouji/TempGraph_20260315_063310.py
+# Maboy_Lab/Kouji/TempGraph_20260315_132351.py
 '''
 TempGraph.py v1.0.0 
 
 麹造りの温度変化の記録をグラフにする。
+2026-03-15 13:21 共有シートからはuiでプレビュー、エディタからはコンソールに出力する。
+2026-03-15 13:00 コンソールにprintせずにlog.txtに出力する。
 2026-03-15 06:32 余分な注釈を削除。
 2026-03-14 20:27 一時ファイルをNamedTemporaryFile()で自動削除する。 
 2026-03-14 19:42 一時ファイルtmp.pngもThis_iPadのtemp_dataに保存する。
@@ -23,13 +25,21 @@ import appex, clipboard, dialogs, io, os, ui
 
 LOCAL_DOCS: Path = Path.home() / "Documents"
 TEMP_DATA_DIR: Path = LOCAL_DOCS / "temp_data"
-TMP_PATH: Path = TEMP_DATA_DIR / "tmp.png"
+LOG_PATH: Path = TEMP_DATA_DIR / "log.txt"
 if not TEMP_DATA_DIR.is_dir(): TEMP_DATA_DIR.mkdir(parents=True, exist_ok=True)
 LATEST_FILE = sorted([x for x in os.listdir(TEMP_DATA_DIR) if '.temp' in x])
 if LATEST_FILE:
     LATEST_FILE: Path = LATEST_FILE[-1]
     FILE_PATH: Path = TEMP_DATA_DIR / LATEST_FILE
-print(FILE_PATH)
+
+with open(LOG_PATH, 'w', encoding='utf-8') as f:
+    f.write(f'FILE_PATH {FILE_PATH}\n')
+
+
+def log(text):
+    with open(LOG_PATH, 'a', encoding='utf-8') as f:
+        f.write(str(text))
+#-------------------------------------------------------------------------------------------
 
 def is_temp_data(text):
     # 温度データならTrue、それ以外ならFalseを返す。
@@ -47,7 +57,7 @@ def is_temp_data(text):
         except ValueError: return False
         return False
     except Exception as e:
-        print("error")
+        log("error {e}\n")
         return e
 #-------------------------------------------------------------------------------------------
 
@@ -58,10 +68,11 @@ def get_temp_data(text):
     LINES = []
     for i, LINE in enumerate(TEMP_DATA):
         
-        print(f"{i+1} {LINE}",end=" ")
+        log(f"{i+1} {LINE}")
+        
         if not is_temp_data(LINE):
-            message = f"⚠️データが認識できません。"
-            print(message)
+            log("⚠️データが認識できません。\n")
+                
             continue
         DATE = LINE.split()[0]
         TIME = LINE.split()[1]
@@ -69,8 +80,8 @@ def get_temp_data(text):
         COMMENT = " ".join(LINE.split()[3:])
         if "0️⃣" in COMMENT:
             FILE_NAME = f'{DATE.replace("-","")}.temp'
-            FILE_PATH = os.path.join(TEMP_DATA_DIR, FILE_NAME) 
-        print()
+            FILE_PATH = TEMP_DATA_DIR / FILE_NAME
+        log("\n")
         LINES.append(LINE)
     return LINES
 #-------------------------------------------------------------------------------------------
@@ -94,12 +105,37 @@ def roundup(n=None):
     return int(n) + (int(n) < n)
 #-------------------------------------------------------------------------------------------
 
+def show_preview(ui_img):
+    # 1. 土台となるビューを作成
+    v = ui.View()
+    v.background_color = 'black' # 画像が映えるように背景は黒
+    v.name = 'Graph Preview'
+    
+    # 2. 画像を表示するためのImageViewを作成
+    iv = ui.ImageView()
+    iv.image = ui_img
+    iv.content_mode = ui.CONTENT_SCALE_ASPECT_FIT # 縦横比を維持して収める
+    
+    # ビュー全体にImageViewを広げる
+    iv.frame = v.bounds
+    iv.flex = 'WH' # 画面サイズが変わっても追従するように
+    
+    v.add_subview(iv)
+    v.width, v.height = ui_img.size
+    
+    # 3. 画面に表示 (popoverだとiPadで小さく表示、sheetだと下から出てきます)
+    v.present('sheet', hide_title_bar=True)
+    
+    # 4. 1.0秒後に閉じる
+    ui.delay(v.close, 1.0)
+#-------------------------------------------------------------------------------------------
+
 def make_graph(file_path=""):
     if not file_path:
         if 'FILE_PATH' in globals():
             file_path=FILE_PATH
         else:
-            print("⚠️ 温度データがありません。")
+            log("⚠️ 温度データがありません。")
             return
         
     # 温度データから折れ線グラフを返す。
@@ -192,11 +228,13 @@ def base_graph(W=648, H=480, bg_file_name='background.png'):
 
 def main():
     global FILE_PATH, LINES
+    APPEX = False
     clip = clipboard.get()
     if appex.is_running_extension():
+        APPEX = True
         text = appex.get_text()
         LINES = get_temp_data(text)
-        print(f'{FILE_PATH}に追加しました。')
+        log(f'{FILE_PATH}に追加しました。')
         append_data(LINES)
     elif clip:
         LINES = get_temp_data(clip)
@@ -205,21 +243,26 @@ def main():
             message = "クリップボードに温度データがあります。\nファイルに追加しますか?"
             y, n = 'はい', 'いいえ'
             if dialogs.alert(title, message, y, n, hide_cancel_button=True) == 1:
-                print(f'{FILE_PATH}に追加しました。')
+                log(f'{FILE_PATH}に追加しました。')
                 append_data(LINES)
+                
     # グラフ描画、保存、クリップボードにコピー
     im = make_graph()
     if not im: return
     W, H = im.size
-    im.show()
+    
+    log(f"{type(FILE_PATH)}{FILE_PATH}")
     im.save(FILE_PATH.with_stem(FILE_PATH.stem + "_graph").with_suffix(".png"))
     
     with NamedTemporaryFile(suffix='.png', delete=True) as tmp:
         im.resize((W // 2, H // 2)).save(tmp.name)
         ui_img = ui.Image(str(tmp.name))
         clipboard.set_image(ui_img)
-    
-    appex.finish()
+    if APPEX:
+        show_preview(ui_img)
+        appex.finish()
+    else:
+        im.show()      
 #-------------------------------------------------------------------------------------------
 
 if __name__ == '__main__':
