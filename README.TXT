@@ -20,8 +20,13 @@ Documents/
        ├ TempGraph.py      (本プログラム)
        └ background.png    (グラフの背景画像：必須)
        
-This iPad（Pythonista 3のルート）
+This iPad（Pythonista3のルートディレクトリ）
  └ temp_data/              (自動生成：データ、ログ、画像が保存されます)
+    ├ 20260313.temp        (温度データ)
+    ├ 20260313_graph.png   (グラフ画像)
+    ├ 20260313_haze_0.png  (破精廻り写真) 
+    ├ 20260313_haze_1.png  (破精廻り透かし写真)
+    └ log.txt              (ログ)
 
 ## 🚀 使い方
 ### A. 共有シートから（推奨）
