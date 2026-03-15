@@ -1,6 +1,6 @@
 # Maboy_Lab/Kouji/TempGraph_20260315_063310.py
 '''
-TempGraph.py v1.0.0
+TempGraph.py v1.0.0 
 
 麹造りの温度変化の記録をグラフにする。
 2026-03-15 06:32 余分な注釈を削除。
