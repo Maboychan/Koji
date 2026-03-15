@@ -65,7 +65,7 @@ def get_temp_data(text):
 #-------------------------------------------------------------------------------------------
 
 def append_data(LINES):
-    # FILE_PATHとLINES合体してソートして保存する。
+    # FILE_PATHとLINESを合体してソートして保存する。
     from pathlib import Path
     global FILE_PATH
     data = []
@@ -73,7 +73,15 @@ def append_data(LINES):
         with open(FILE_PATH, encoding='utf-8') as f:
             data = f.read().splitlines()
     data_set = set(data + LINES)
-    data = sorted(data_set)
+    sorted_data = sorted(data_set)
+    data = [sorted_data[0]]
+    # コメント違いの重複を削除
+    for d in sorted_data[1:]:
+        if str(data[-1]).split()[:3] == d.split()[:3]:
+            log(f'⚠️ {data[-1]} == {d}')
+            data[-1] = d
+        else:
+            data.append(d)
     with open(FILE_PATH, 'w', encoding='utf8') as f:
         f.write('\n'.join(data))
 #-------------------------------------------------------------------------------------------
@@ -105,7 +113,7 @@ def show_preview(ui_img):
     v.present('sheet', hide_title_bar=True)
     
     # 4. 1.0秒後に閉じる
-    ui.delay(v.close, 1.0)
+    ui.delay(v.close, 2.0)
 #-------------------------------------------------------------------------------------------
 
 def make_graph(file_path=""):
@@ -197,7 +205,6 @@ def base_graph(W=648, H=480, bg_file_name='background.png'):
         dr.text((x if x < W else x - 12, H - 10), str((i + 1) * 12), text_color)
     # グラフサイズに合わせて背景画像を引き伸ばしグリッドラインを重ねる。
 # bg_file_nameが存在しない場合の処理が必要
-# 背景画像ファイルが存在しない場合は作成する
     bg = Image.open(bg_file_name).resize((W,H))
     cr = bg.crop((bg.size[0] - 1, 0, bg.size[0], bg.size[1]))
     cr = cr.resize(im.size)
