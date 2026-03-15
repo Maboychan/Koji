@@ -1,8 +1,9 @@
-# Maboy_Lab/Kouji/TempGraph_20260315_132351.py
+# Maboy_Lab/Kouji/TempGraph_20260315_135911.py
 '''
 TempGraph.py v1.0.0 
 
 麹造りの温度変化の記録をグラフにする。
+2026-03-15 13:57 logの追記に改行を加える。
 2026-03-15 13:21 共有シートからはuiでプレビュー、エディタからはコンソールに出力する。
 2026-03-15 13:00 コンソールにprintせずにlog.txtに出力する。
 2026-03-15 06:32 余分な注釈を削除。
@@ -35,10 +36,9 @@ if LATEST_FILE:
 with open(LOG_PATH, 'w', encoding='utf-8') as f:
     f.write(f'FILE_PATH {FILE_PATH}\n')
 
-
-def log(text):
+def log(text='',end='\n'):
     with open(LOG_PATH, 'a', encoding='utf-8') as f:
-        f.write(str(text))
+        f.write(str(text)+end)
 #-------------------------------------------------------------------------------------------
 
 def is_temp_data(text):
@@ -57,7 +57,7 @@ def is_temp_data(text):
         except ValueError: return False
         return False
     except Exception as e:
-        log("error {e}\n")
+        log("error {e}")
         return e
 #-------------------------------------------------------------------------------------------
 
@@ -67,12 +67,10 @@ def get_temp_data(text):
     TEMP_DATA = text.splitlines()
     LINES = []
     for i, LINE in enumerate(TEMP_DATA):
-        
-        log(f"{i+1} {LINE}")
+        log(f"{i+1} {LINE}",end='')
         
         if not is_temp_data(LINE):
-            log("⚠️データが認識できません。\n")
-                
+            log("⚠️データが認識できません。")
             continue
         DATE = LINE.split()[0]
         TIME = LINE.split()[1]
@@ -81,7 +79,7 @@ def get_temp_data(text):
         if "0️⃣" in COMMENT:
             FILE_NAME = f'{DATE.replace("-","")}.temp'
             FILE_PATH = TEMP_DATA_DIR / FILE_NAME
-        log("\n")
+        log()
         LINES.append(LINE)
     return LINES
 #-------------------------------------------------------------------------------------------
