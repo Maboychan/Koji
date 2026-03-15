@@ -1,23 +1,3 @@
-# Maboy_Lab/Kouji/TempGraph_20260315_135911.py
-'''
-TempGraph.py v1.0.0 
-
-麹造りの温度変化の記録をグラフにする。
-2026-03-15 13:57 logの追記に改行を加える。
-2026-03-15 13:21 共有シートからはuiでプレビュー、エディタからはコンソールに出力する。
-2026-03-15 13:00 コンソールにprintせずにlog.txtに出力する。
-2026-03-15 06:32 余分な注釈を削除。
-2026-03-14 20:27 一時ファイルをNamedTemporaryFile()で自動削除する。 
-2026-03-14 19:42 一時ファイルtmp.pngもThis_iPadのtemp_dataに保存する。
-2026-03-14 19:26 データフォルダをThis_iPadのtemp_dataに配置する。
-2026-03-14 15:43 FILE_PATHをstr()からPath()に変更。
-2026-03-14 11:33 新規のデータを読み込んだ時にひとつ前のグラフが返されるバグを修正。
-2026-03-13 06:51 ファイル名のルールを変更に伴いLATEST_FILEの取得を".temp"に限定
-    20260313.temp            # 温度データ
-    20260313_graph.png       # グラフ画像
-    20260313_haze_0.png      # 破精廻り写真 
-    20260313_haze_1.png      # 破精廻り透かし写真
-'''
 from datetime import datetime
 from pathlib import Path
 from PIL import Image, ImageDraw
@@ -256,7 +236,8 @@ def main():
         im.resize((W // 2, H // 2)).save(tmp.name)
         ui_img = ui.Image(str(tmp.name))
         clipboard.set_image(ui_img)
-    if APPEX:
+ 
+   if APPEX:
         show_preview(ui_img)
         appex.finish()
     else:
