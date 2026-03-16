@@ -17,11 +17,11 @@
 ```
 Documents/
  └ dev/
-    └ Kouji/
+    └ Koji/                (任意の場所)
        ├ TempGraph.py      (本プログラム)
        └ background.png    (グラフの背景画像：必須)
        
-This iPad（Pythonista3のルートディレクトリ）
+This iPad                  (Pythonista3のルートディレクトリ)
  └ temp_data/              (自動生成：データ、ログ、画像が保存されます)
     ├ 20260313.temp        (温度データ)
     ├ 20260313_graph.png   (グラフ画像)
