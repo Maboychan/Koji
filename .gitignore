@@ -1,0 +1,31 @@
+# --- Local Test Files ---
+test.py
+temp_*.py
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+
+# --- Operating Systems ---
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+desktop.ini
+
+# iOS (Mobile development specific)
+*.moved-aside
+*.xccheckout
+*.xcscmblueprint
+
+# --- Editors/IDEs ---
+.vscode/
+.idea/
+*.swp
